@@ -414,12 +414,20 @@ class MiFitnessCloudAdapter(DataAdapter):
         return items
 
     def _sleep_stage_name(self, state: Any) -> str:
+        # 小米运动健康实际状态码：
+        # 1: 旧版设备深睡兼容码
+        # 2: 深睡 (deep) - 切片时长之和与 sleep_deep_duration 精确吻合
+        # 3: 浅睡 (light) - 切片时长之和与 sleep_light_duration 精确吻合
+        # 4: 快速眼动 (rem) - 切片时长之和与 sleep_rem_duration 精确吻合
+        # 5: 清醒 (awake) - 切片时长之和与 sleep_awake_duration 精确吻合
+        # 6: 手机单段跟踪/未分期小睡
         mapping = {
             1: "deep",
-            2: "light",
+            2: "deep",
             3: "light",
-            4: "awake",
-            5: "rem",
+            4: "rem",
+            5: "awake",
+            6: "light",
         }
         try:
             return mapping.get(int(state), "light")
@@ -502,6 +510,46 @@ class MiFitnessCloudAdapter(DataAdapter):
                 active_kcal=float(values["active_kcal"]),
             )
 
+    async def _fetch_aggregated_sleep_scores(
+        self, start_date: str, end_date: str, region: str | None = None
+    ) -> dict[Any, int]:
+        region_name = region or self.region
+        base_url = (
+            "https://hlth.io.mi.com"
+            if region_name in ("", "cn")
+            else f"https://{region_name}.hlth.io.mi.com"
+        )
+        start_time, end_time = self._date_range_to_timestamps(start_date, end_date, region_name)
+        scores: dict[Any, int] = {}
+        try:
+            payload = {
+                "tag": "daily_report",
+                "key": "sleep",
+                "reverse": True,
+                "limit": 50,
+                "start_time": start_time,
+                "end_time": end_time,
+            }
+            res = await self._request(
+                base_url, "/app/v1/data/get_aggregated_fitness_data_by_time", payload
+            )
+            for entry in res.get("data_list", []):
+                val = self._parse_value(entry)
+                score = val.get("sleep_score")
+                if score is None:
+                    continue
+                score_int = int(score)
+                for seg in val.get("segment_details", []):
+                    bt = seg.get("bedtime")
+                    wt = seg.get("wake_up_time")
+                    if bt:
+                        scores[int(bt)] = score_int
+                    if bt and wt:
+                        scores[(int(bt), int(wt))] = score_int
+        except Exception as exc:
+            logger.warning("Failed to fetch aggregated sleep scores: %s", exc)
+        return scores
+
     async def iter_sleep_sessions(
         self,
         start_date: str | None = None,
@@ -511,6 +559,7 @@ class MiFitnessCloudAdapter(DataAdapter):
             return
             yield
 
+        scores = await self._fetch_aggregated_sleep_scores(start_date, end_date)
         records = await self._fetch_key("sleep", start_date, end_date)
         for item in records:
             payload = self._parse_value(item)
@@ -555,6 +604,12 @@ class MiFitnessCloudAdapter(DataAdapter):
                     continue
 
             sleep_id = f"{item.get('sid', self.user_id)}_{item.get('time', int(sleep_end))}"
+            matched_score = scores.get((int(sleep_start), int(sleep_end)))
+            if matched_score is None:
+                matched_score = scores.get(int(sleep_start))
+            if matched_score is None:
+                matched_score = self._optional_int(payload.get("score") or payload.get("sleep_score"))
+
             yield SleepSession(
                 id=f"mi_fitness_sleep_{sleep_id}",
                 provider="mi_fitness",
@@ -569,7 +624,7 @@ class MiFitnessCloudAdapter(DataAdapter):
                 duration_minutes=duration_minutes,
                 time_asleep_minutes=asleep_minutes,
                 time_awake_minutes=awake_minutes,
-                sleep_score=self._optional_int(payload.get("score") or payload.get("sleep_score")),
+                sleep_score=matched_score,
                 is_nap=bool(payload.get("is_nap", False)),
                 stages=stages,
             )

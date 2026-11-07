@@ -1,9 +1,12 @@
+import json
+
 import pytest
 
 from mi_fitness_mcp.adapters.mi_fitness_cloud import (
     MiFitnessCloudAdapter,
     _is_authentication_error,
 )
+from mi_fitness_mcp.models import SleepStage
 
 
 async def _collect(async_iterable):
@@ -100,3 +103,59 @@ def test_authentication_error_detection():
     assert _is_authentication_error(0, "session expired")
     assert _is_authentication_error(-10001, "unknown")
     assert not _is_authentication_error(500, "temporary server failure")
+
+
+def test_sleep_stage_name_maps_mi_fitness_codes():
+    adapter = MiFitnessCloudAdapter(user_id="u1", pass_token="p1")
+
+    assert adapter._sleep_stage_name(1) == "deep"
+    assert adapter._sleep_stage_name(2) == "deep"
+    assert adapter._sleep_stage_name(3) == "light"
+    assert adapter._sleep_stage_name(4) == "rem"
+    assert adapter._sleep_stage_name(5) == "awake"
+    assert adapter._sleep_stage_name(6) == "light"
+    assert adapter._sleep_stage_name(None) == "light"
+
+
+@pytest.mark.asyncio
+async def test_iter_sleep_sessions_fills_score_and_deep_stage(monkeypatch):
+    adapter = MiFitnessCloudAdapter(user_id="u1", pass_token="p1", region="cn")
+    adapter._connected = True
+    adapter._client = object()
+
+    async def fake_scores(start_date, end_date, region=None):
+        return {(1743467400, 1743496200): 88}
+
+    async def fake_fetch(
+        key, start_date=None, end_date=None, region=None, start_time=None, end_time=None
+    ):
+        return [
+            {
+                "time": 1743496200,
+                "zone_offset": 0,
+                "sid": "s1",
+                "value": json.dumps(
+                    {
+                        "bedtime": 1743467400,
+                        "wake_up_time": 1743496200,
+                        "duration": 28800,
+                        "items": [
+                            {
+                                "start_time": 1743467400,
+                                "end_time": 1743474600,
+                                "state": 2,
+                            }
+                        ],
+                    }
+                ),
+            }
+        ]
+
+    monkeypatch.setattr(adapter, "_fetch_aggregated_sleep_scores", fake_scores)
+    monkeypatch.setattr(adapter, "_fetch_key", fake_fetch)
+
+    items = await _collect(adapter.iter_sleep_sessions("2026-04-01", "2026-04-02"))
+
+    assert len(items) == 1
+    assert items[0].sleep_score == 88
+    assert items[0].stages == [SleepStage(stage="deep", minutes=120)]
