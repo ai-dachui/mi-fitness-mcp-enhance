@@ -3,7 +3,7 @@
 [![CI](https://github.com/HUAYUE1024/mi-fitness-mcp-cn/actions/workflows/ci.yml/badge.svg)](https://github.com/HUAYUE1024/mi-fitness-mcp-cn/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.2.0-orange.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.3.0-orange.svg)](CHANGELOG.md)
 
 小米运动健康（Mi Fitness）数据的**本地一站式解决方案**：MCP Server + REST API + 可视化 Web 仪表盘。把你自己账号里的健康数据同步到本地 SQLite，供 AI 客户端、其他程序或浏览器直接查询分析。
 
@@ -91,7 +91,13 @@ mi-fitness-mcp doctor        # 验证连通性
 mi-fitness-mcp sync --start-date 2026-01-01 --end-date 2026-06-30              # 全量同步
 mi-fitness-mcp sync --type sleep --start-date 2026-06-01 --end-date 2026-06-30 # 按类型
 mi-fitness-mcp sync                                                            # 无日期：从上次断点续传（首次为最近 30 天）
+
+# 小时窗口增量（时序类：心率、压力、血氧、异常心跳、运动）
+mi-fitness-mcp sync --type heart_rate --hours-back 2
+mi-fitness-mcp sync --type heart_rate --start-time 1743467400 --end-time 1743474600
 ```
+
+> `--hours-back` / `--start-time` / `--end-time` 只对时序类生效；步数、睡眠、体重等日聚合数据仍按天抓取，避免汇总值被窗口截断。
 
 **接入 MCP 客户端**（Claude Desktop 等）：
 
@@ -133,6 +139,10 @@ curl "http://127.0.0.1:8321/api/summary?start_date=2026-08-01&end_date=2026-08-3
 # 触发同步（前台等待）/ 后台执行
 curl -X POST http://127.0.0.1:8321/api/sync -H "Content-Type: application/json" \
   -d '{"start_date":"2026-08-30","end_date":"2026-08-31"}'
+
+# 小时窗口同步（时序类）
+curl -X POST http://127.0.0.1:8321/api/sync -H "Content-Type: application/json" \
+  -d '{"data_types":["heart_rate"],"hours_back":2}'
 ```
 
 ## 常见问题
