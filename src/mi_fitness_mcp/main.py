@@ -131,6 +131,9 @@ async def cmd_sync_async(args):
                 data_type=data_type,
                 start_date=args.start_date,
                 end_date=args.end_date,
+                hours_back=args.hours_back,
+                start_time=args.start_time,
+                end_time=args.end_time,
             )
             print(f"✅ {data_type}: 新增 {result['added']} 条，更新 {result['updated']} 条")
         except Exception as e:
@@ -203,8 +206,17 @@ def main():
         ],
         help="要同步的数据类型",
     )
-    sync_parser.add_argument("--start-date", help="开始日期（YYYY-MM-DD）")
-    sync_parser.add_argument("--end-date", help="结束日期（YYYY-MM-DD）")
+    sync_parser.add_argument(
+        "--start-date", help="开始日期（YYYY-MM-DD 或 ISO 8601，如 2026-11-06T09:00:00）"
+    )
+    sync_parser.add_argument(
+        "--end-date", help="结束日期（YYYY-MM-DD 或 ISO 8601，如 2026-11-06T11:00:00）"
+    )
+    sync_parser.add_argument(
+        "--hours-back", type=int, help="只同步最近 N 小时（仅时序类：心率、压力、血氧、异常心跳、运动）"
+    )
+    sync_parser.add_argument("--start-time", type=int, help="窗口开始时间（epoch 秒）")
+    sync_parser.add_argument("--end-time", type=int, help="窗口结束时间（epoch 秒）")
 
     api_parser = subparsers.add_parser("api", help="启动 HTTP API 服务（供其他程序调用）")
     api_parser.add_argument("--host", default="127.0.0.1", help="监听地址（默认 127.0.0.1）")

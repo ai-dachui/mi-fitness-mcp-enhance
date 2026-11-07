@@ -59,8 +59,11 @@ async def list_tools() -> list[Tool]:
                 "type": "object",
                 "properties": {
                     "data_types": {"type": "array", "items": {"type": "string"}},
-                    "start_date": {"type": "string"},
-                    "end_date": {"type": "string"},
+                    "start_date": {"type": "string", "description": "Start date (YYYY-MM-DD or ISO 8601)"},
+                    "end_date": {"type": "string", "description": "End date (YYYY-MM-DD or ISO 8601)"},
+                    "hours_back": {"type": "integer", "description": "Fetch only the last N hours for time-series metrics"},
+                    "start_time": {"type": "integer", "description": "Window start timestamp (epoch seconds)"},
+                    "end_time": {"type": "integer", "description": "Window end timestamp (epoch seconds)"},
                     "force_full_sync": {"type": "boolean"},
                     "background": {"type": "boolean", "default": False},
                 },
@@ -418,6 +421,9 @@ async def _run_sync_data(arguments: dict, sync_id: str | None = None) -> dict:
                     start_date=arguments.get("start_date"),
                     end_date=arguments.get("end_date"),
                     force_full=arguments.get("force_full_sync", False),
+                    hours_back=arguments.get("hours_back"),
+                    start_time=arguments.get("start_time"),
+                    end_time=arguments.get("end_time"),
                 ),
                 timeout=config.sync_type_timeout_seconds,
             )

@@ -43,6 +43,7 @@ class DataAdapter(ABC):
         self,
         start_date: str | None = None,
         end_date: str | None = None,
+        **kwargs: Any,
     ) -> Iterator[DailyActivity] | AsyncIterator[DailyActivity]:
         """Iterate over daily activity records."""
         pass
@@ -52,6 +53,7 @@ class DataAdapter(ABC):
         self,
         start_date: str | None = None,
         end_date: str | None = None,
+        **kwargs: Any,
     ) -> Iterator[SleepSession] | AsyncIterator[SleepSession]:
         """Iterate over sleep session records."""
         pass
@@ -61,6 +63,7 @@ class DataAdapter(ABC):
         self,
         start_date: str | None = None,
         end_date: str | None = None,
+        **kwargs: Any,
     ) -> Iterator[Workout] | AsyncIterator[Workout]:
         """Iterate over workout records."""
         pass
@@ -70,6 +73,7 @@ class DataAdapter(ABC):
         self,
         start_date: str | None = None,
         end_date: str | None = None,
+        **kwargs: Any,
     ) -> Iterator[BodyMeasurement] | AsyncIterator[BodyMeasurement]:
         """Iterate over body measurement records."""
         pass
@@ -79,6 +83,7 @@ class DataAdapter(ABC):
         self,
         start_date: str | None = None,
         end_date: str | None = None,
+        **kwargs: Any,
     ) -> Iterator[HeartRateSample] | AsyncIterator[HeartRateSample]:
         """Iterate over heart rate records."""
         pass
@@ -88,6 +93,7 @@ class DataAdapter(ABC):
         self,
         start_date: str | None = None,
         end_date: str | None = None,
+        **kwargs: Any,
     ) -> Iterator[SpO2Sample] | AsyncIterator[SpO2Sample]:
         """Iterate over blood oxygen saturation records."""
         pass
@@ -97,6 +103,7 @@ class DataAdapter(ABC):
         self,
         start_date: str | None = None,
         end_date: str | None = None,
+        **kwargs: Any,
     ) -> Iterator[StressSample] | AsyncIterator[StressSample]:
         """Iterate over stress records."""
         pass
@@ -106,6 +113,7 @@ class DataAdapter(ABC):
         self,
         start_date: str | None = None,
         end_date: str | None = None,
+        **kwargs: Any,
     ) -> Iterator[AbnormalHeartBeatEvent] | AsyncIterator[AbnormalHeartBeatEvent]:
         """Iterate over abnormal heart beat events."""
         pass

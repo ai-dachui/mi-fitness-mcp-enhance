@@ -283,12 +283,29 @@ class MiFitnessCloudAdapter(DataAdapter):
         self, start_date: str, end_date: str, region: str | None = None
     ) -> tuple[int, int]:
         tz = self._request_timezone(region)
-        start_dt = datetime.fromisoformat(start_date).replace(tzinfo=tz)
-        end_dt = datetime.fromisoformat(end_date + "T23:59:59").replace(tzinfo=tz)
+        if "T" in start_date or " " in start_date:
+            start_dt = datetime.fromisoformat(start_date)
+            if start_dt.tzinfo is None:
+                start_dt = start_dt.replace(tzinfo=tz)
+        else:
+            start_dt = datetime.fromisoformat(start_date).replace(tzinfo=tz)
+
+        if "T" in end_date or " " in end_date:
+            end_dt = datetime.fromisoformat(end_date)
+            if end_dt.tzinfo is None:
+                end_dt = end_dt.replace(tzinfo=tz)
+        else:
+            end_dt = datetime.fromisoformat(end_date + "T23:59:59").replace(tzinfo=tz)
         return int(start_dt.timestamp()), int(end_dt.timestamp())
 
     async def _fetch_key(
-        self, key: str, start_date: str, end_date: str, region: str | None = None
+        self,
+        key: str,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        region: str | None = None,
+        start_time: int | None = None,
+        end_time: int | None = None,
     ) -> list[dict]:
         region_name = region or self.region
         base_url = (
@@ -296,7 +313,10 @@ class MiFitnessCloudAdapter(DataAdapter):
             if region_name in ("", "cn")
             else f"https://{region_name}.hlth.io.mi.com"
         )
-        start_time, end_time = self._date_range_to_timestamps(start_date, end_date, region_name)
+        if start_time is None or end_time is None:
+            if not start_date or not end_date:
+                raise ValueError("Must provide either (start_time, end_time) or (start_date, end_date)")
+            start_time, end_time = self._date_range_to_timestamps(start_date, end_date, region_name)
         next_key = None
         items: list[dict] = []
 
@@ -373,7 +393,12 @@ class MiFitnessCloudAdapter(DataAdapter):
         return datetime.fromtimestamp(int(timestamp), tz=tz)
 
     async def _fetch_sport_records_by_time(
-        self, start_date: str, end_date: str, region: str | None = None
+        self,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        region: str | None = None,
+        start_time: int | None = None,
+        end_time: int | None = None,
     ) -> list[dict]:
         region_name = region or self.region
         base_url = (
@@ -381,7 +406,10 @@ class MiFitnessCloudAdapter(DataAdapter):
             if region_name in ("", "cn")
             else f"https://{region_name}.hlth.io.mi.com"
         )
-        start_time, end_time = self._date_range_to_timestamps(start_date, end_date, region_name)
+        if start_time is None or end_time is None:
+            if not start_date or not end_date:
+                raise ValueError("Must provide either (start_time, end_time) or (start_date, end_date)")
+            start_time, end_time = self._date_range_to_timestamps(start_date, end_date, region_name)
         next_key = None
         items: list[dict] = []
 
@@ -450,8 +478,16 @@ class MiFitnessCloudAdapter(DataAdapter):
         self,
         start_date: str | None = None,
         end_date: str | None = None,
+        **kwargs: Any,
     ) -> AsyncIterator[DailyActivity]:
-        if not self.is_connected() or not start_date or not end_date:
+        if not self.is_connected():
+            return
+            yield
+        if not start_date and kwargs.get("start_time"):
+            start_date = datetime.fromtimestamp(kwargs["start_time"], tz=self._request_timezone()).strftime("%Y-%m-%d")
+        if not end_date and kwargs.get("end_time"):
+            end_date = datetime.fromtimestamp(kwargs["end_time"], tz=self._request_timezone()).strftime("%Y-%m-%d")
+        if not start_date or not end_date:
             return
             yield
 
@@ -554,8 +590,16 @@ class MiFitnessCloudAdapter(DataAdapter):
         self,
         start_date: str | None = None,
         end_date: str | None = None,
+        **kwargs: Any,
     ) -> AsyncIterator[SleepSession]:
-        if not self.is_connected() or not start_date or not end_date:
+        if not self.is_connected():
+            return
+            yield
+        if not start_date and kwargs.get("start_time"):
+            start_date = datetime.fromtimestamp(kwargs["start_time"], tz=self._request_timezone()).strftime("%Y-%m-%d")
+        if not end_date and kwargs.get("end_time"):
+            end_date = datetime.fromtimestamp(kwargs["end_time"], tz=self._request_timezone()).strftime("%Y-%m-%d")
+        if not start_date or not end_date:
             return
             yield
 
@@ -633,12 +677,17 @@ class MiFitnessCloudAdapter(DataAdapter):
         self,
         start_date: str | None = None,
         end_date: str | None = None,
+        start_time: int | None = None,
+        end_time: int | None = None,
+        **kwargs: Any,
     ) -> AsyncIterator[Workout]:
-        if not self.is_connected() or not start_date or not end_date:
+        if not self.is_connected() or (start_time is None and (not start_date or not end_date)):
             return
             yield
 
-        records = await self._fetch_sport_records_by_time(start_date, end_date)
+        records = await self._fetch_sport_records_by_time(
+            start_date, end_date, start_time=start_time, end_time=end_time
+        )
         for item in records:
             payload = self._parse_value(item)
             zone_offset = int(item.get("zone_offset", 0) or 0)
@@ -690,8 +739,16 @@ class MiFitnessCloudAdapter(DataAdapter):
         self,
         start_date: str | None = None,
         end_date: str | None = None,
+        **kwargs: Any,
     ) -> AsyncIterator[BodyMeasurement]:
-        if not self.is_connected() or not start_date or not end_date:
+        if not self.is_connected():
+            return
+            yield
+        if not start_date and kwargs.get("start_time"):
+            start_date = datetime.fromtimestamp(kwargs["start_time"], tz=self._request_timezone()).strftime("%Y-%m-%d")
+        if not end_date and kwargs.get("end_time"):
+            end_date = datetime.fromtimestamp(kwargs["end_time"], tz=self._request_timezone()).strftime("%Y-%m-%d")
+        if not start_date or not end_date:
             return
             yield
 
@@ -720,12 +777,17 @@ class MiFitnessCloudAdapter(DataAdapter):
         self,
         start_date: str | None = None,
         end_date: str | None = None,
+        start_time: int | None = None,
+        end_time: int | None = None,
+        **kwargs: Any,
     ) -> AsyncIterator[HeartRateSample]:
-        if not self.is_connected() or not start_date or not end_date:
+        if not self.is_connected() or (start_time is None and (not start_date or not end_date)):
             return
             yield
 
-        records = await self._fetch_key("heart_rate", start_date, end_date)
+        records = await self._fetch_key(
+            "heart_rate", start_date, end_date, start_time=start_time, end_time=end_time
+        )
         for item in records:
             payload = self._parse_value(item)
             sample_type = "passive" if int(payload.get("type", 0)) == 0 else "active"
@@ -742,7 +804,9 @@ class MiFitnessCloudAdapter(DataAdapter):
                 sample_type=sample_type,
             )
 
-        resting_records = await self._fetch_key("resting_heart_rate", start_date, end_date)
+        resting_records = await self._fetch_key(
+            "resting_heart_rate", start_date, end_date, start_time=start_time, end_time=end_time
+        )
         for item in resting_records:
             payload = self._parse_value(item)
             timestamp = payload.get("date_time") or item.get("time")
@@ -772,12 +836,17 @@ class MiFitnessCloudAdapter(DataAdapter):
         self,
         start_date: str | None = None,
         end_date: str | None = None,
+        start_time: int | None = None,
+        end_time: int | None = None,
+        **kwargs: Any,
     ) -> AsyncIterator[SpO2Sample]:
-        if not self.is_connected() or not start_date or not end_date:
+        if not self.is_connected() or (start_time is None and (not start_date or not end_date)):
             return
             yield
 
-        records = await self._fetch_key("spo2", start_date, end_date)
+        records = await self._fetch_key(
+            "spo2", start_date, end_date, start_time=start_time, end_time=end_time
+        )
         for item in records:
             payload = self._parse_value(item)
             timestamp = payload.get("time") or item.get("time")
@@ -802,12 +871,17 @@ class MiFitnessCloudAdapter(DataAdapter):
         self,
         start_date: str | None = None,
         end_date: str | None = None,
+        start_time: int | None = None,
+        end_time: int | None = None,
+        **kwargs: Any,
     ) -> AsyncIterator[StressSample]:
-        if not self.is_connected() or not start_date or not end_date:
+        if not self.is_connected() or (start_time is None and (not start_date or not end_date)):
             return
             yield
 
-        records = await self._fetch_key("stress", start_date, end_date)
+        records = await self._fetch_key(
+            "stress", start_date, end_date, start_time=start_time, end_time=end_time
+        )
         for item in records:
             payload = self._parse_value(item)
             timestamp = payload.get("time") or item.get("time")
@@ -834,12 +908,17 @@ class MiFitnessCloudAdapter(DataAdapter):
         self,
         start_date: str | None = None,
         end_date: str | None = None,
+        start_time: int | None = None,
+        end_time: int | None = None,
+        **kwargs: Any,
     ) -> AsyncIterator[AbnormalHeartBeatEvent]:
-        if not self.is_connected() or not start_date or not end_date:
+        if not self.is_connected() or (start_time is None and (not start_date or not end_date)):
             return
             yield
 
-        records = await self._fetch_key("abnormal_heart_beat", start_date, end_date)
+        records = await self._fetch_key(
+            "abnormal_heart_beat", start_date, end_date, start_time=start_time, end_time=end_time
+        )
         for item in records:
             payload = self._parse_value(item)
             zone_offset = int(item.get("zone_offset", 0) or 0)

@@ -117,6 +117,41 @@ def test_sleep_stage_name_maps_mi_fitness_codes():
     assert adapter._sleep_stage_name(None) == "light"
 
 
+def test_date_range_accepts_iso_datetime():
+    adapter = MiFitnessCloudAdapter(user_id="u1", pass_token="p1", region="cn")
+
+    start, end = adapter._date_range_to_timestamps(
+        "2026-11-06T09:00:00", "2026-11-06T11:00:00"
+    )
+
+    assert end - start == 7200
+
+
+@pytest.mark.asyncio
+async def test_fetch_key_uses_epoch_window(monkeypatch):
+    adapter = MiFitnessCloudAdapter(user_id="u1", pass_token="p1", region="cn")
+    adapter._client = object()
+    captured = {}
+
+    async def fake_request(base_url, api_path, payload):
+        captured.update(payload)
+        return {"data_list": []}
+
+    monkeypatch.setattr(adapter, "_request", fake_request)
+    await adapter._fetch_key("heart_rate", start_time=1743467400, end_time=1743474600)
+
+    assert captured["start_time"] == 1743467400
+    assert captured["end_time"] == 1743474600
+
+
+@pytest.mark.asyncio
+async def test_fetch_key_requires_dates_or_window():
+    adapter = MiFitnessCloudAdapter(user_id="u1", pass_token="p1")
+
+    with pytest.raises(ValueError, match="start_time"):
+        await adapter._fetch_key("heart_rate")
+
+
 @pytest.mark.asyncio
 async def test_iter_sleep_sessions_fills_score_and_deep_stage(monkeypatch):
     adapter = MiFitnessCloudAdapter(user_id="u1", pass_token="p1", region="cn")

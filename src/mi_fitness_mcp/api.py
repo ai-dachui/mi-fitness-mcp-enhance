@@ -284,9 +284,14 @@ def _validate_date(value: str | None, name: str) -> str | None:
         return None
     try:
         datetime.strptime(value, "%Y-%m-%d")
+        return value
+    except ValueError:
+        pass
+    try:
+        datetime.fromisoformat(value)
+        return value
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=f"{name} 必须为 YYYY-MM-DD 格式") from exc
-    return value
+        raise HTTPException(status_code=400, detail=f"{name} 必须为 YYYY-MM-DD 或 ISO 8601 格式") from exc
 
 
 def _validate_limit(limit: int | None) -> int | None:
@@ -554,6 +559,9 @@ class SyncRequest(BaseModel):
     data_types: list[str] | None = None
     start_date: str | None = None
     end_date: str | None = None
+    hours_back: int | None = None
+    start_time: int | None = None
+    end_time: int | None = None
     force_full_sync: bool = False
     background: bool = False
 
@@ -586,6 +594,9 @@ async def _run_sync(ctx: UserContext, config, arguments: dict) -> dict:
                     start_date=arguments.get("start_date"),
                     end_date=arguments.get("end_date"),
                     force_full=arguments.get("force_full_sync", False),
+                    hours_back=arguments.get("hours_back"),
+                    start_time=arguments.get("start_time"),
+                    end_time=arguments.get("end_time"),
                 ),
                 timeout=config.sync_type_timeout_seconds,
             )
@@ -661,6 +672,9 @@ async def post_sync(req: SyncRequest, request: Request) -> dict:
         "data_types": req.data_types,
         "start_date": req.start_date,
         "end_date": req.end_date,
+        "hours_back": req.hours_back,
+        "start_time": req.start_time,
+        "end_time": req.end_time,
         "force_full_sync": req.force_full_sync,
     }
     if req.background:
