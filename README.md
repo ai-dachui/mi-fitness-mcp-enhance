@@ -9,7 +9,13 @@
 
 > Local-first Mi Fitness (Xiaomi health) data hub: sync your own health data to a local SQLite database, exposed via MCP, REST API, and a web dashboard.
 
-基于 [kubulashvili/mi-fitness-mcp](https://github.com/kubulashvili/mi-fitness-mcp) 修改并深度重构。
+## 关于本仓库
+
+本仓库是**自维护分支**：基于 [kubulashvili/mi-fitness-mcp](https://github.com/kubulashvili/mi-fitness-mcp) 修改并深度重构，不是上游的镜像，也不与上游做 fork 联动。
+
+- 维护与发版（Issue / PR / tag / GitHub Release）均在本仓库进行：https://github.com/HUAYUE1024/mi-fitness-mcp-cn
+- 保留 MIT 许可与原项目署名；不承诺与上游同步，上游变更不会自动合并进来。
+- 升级、问题反馈与功能请求请在本仓库提交 Issue。
 
 ## 界面预览
 
