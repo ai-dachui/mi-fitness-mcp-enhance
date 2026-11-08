@@ -194,3 +194,30 @@ async def test_partial_window_is_rejected():
 
     with pytest.raises(ValueError, match="provided together"):
         await service.sync_data_type("heart_rate", start_time=1743467400)
+
+
+@pytest.mark.asyncio
+async def test_mixed_iso_and_date_range_uses_end_of_day(monkeypatch):
+    service = SyncService(WindowFakeAdapter(), FakeDatabase())
+    captured = {}
+
+    async def fake_range(data_type, start_date, end_date, start_time=None, end_time=None):
+        captured.update(
+            {
+                "start_date": start_date,
+                "end_date": end_date,
+                "start_time": start_time,
+                "end_time": end_time,
+            }
+        )
+        return {"added": 1, "updated": 0, "skipped": 0}
+
+    monkeypatch.setattr(service, "_sync_range", fake_range)
+    result = await service.sync_data_type(
+        "heart_rate", start_date="2026-11-07T00:00:00", end_date="2026-11-08"
+    )
+
+    assert result["start_date"] == "2026-11-07"
+    assert result["end_date"] == "2026-11-08"
+    assert captured["start_time"] is not None
+    assert captured["end_time"] - captured["start_time"] == 172799

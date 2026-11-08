@@ -19,11 +19,10 @@ TIME_SERIES_DATA_TYPES = {
     "workouts",
 }
 
-DAILY_AGGREGATED_DATA_TYPES = {
-    "daily_activity",
-    "sleep",
-    "body_measurements",
-}
+
+def _has_time_component(value: str | None) -> bool:
+    """Return True when a date string carries an ISO 8601 time part."""
+    return bool(value) and ("T" in value or " " in value)
 
 
 class SyncService:
@@ -131,14 +130,19 @@ class SyncService:
             end_time = int(window_end.timestamp())
             start_date = window_start.strftime("%Y-%m-%d")
             end_date = window_end.strftime("%Y-%m-%d")
-        elif start_date and ("T" in start_date or " " in start_date):
-            start_dt = datetime.fromisoformat(start_date)
-            if start_dt.tzinfo is None:
-                start_dt = start_dt.replace(tzinfo=tz)
-            if end_date and ("T" in end_date or " " in end_date):
+        elif _has_time_component(start_date) or _has_time_component(end_date):
+            if start_date:
+                start_dt = datetime.fromisoformat(start_date)
+                if start_dt.tzinfo is None:
+                    start_dt = start_dt.replace(tzinfo=tz)
+            else:
+                start_dt = now_dt - timedelta(days=self.default_lookback_days)
+            if end_date:
                 end_dt = datetime.fromisoformat(end_date)
                 if end_dt.tzinfo is None:
                     end_dt = end_dt.replace(tzinfo=tz)
+                if not _has_time_component(end_date):
+                    end_dt = end_dt.replace(hour=23, minute=59, second=59)
             else:
                 end_dt = now_dt
             start_time = int(start_dt.timestamp())
