@@ -11,10 +11,11 @@
 
 ## 关于本仓库
 
-本仓库是**自维护分支**：基于 [kubulashvili/mi-fitness-mcp](https://github.com/kubulashvili/mi-fitness-mcp) 修改并深度重构，不是上游的镜像，也不与上游做 fork 联动。
+本仓库是**自维护分支**，代码与提交历史延续自中文增强分支 [HUAYUE1024/mi-fitness-mcp-cn](https://github.com/HUAYUE1024/mi-fitness-mcp-cn)，而该分支派生自原始项目 [kubulashvili/mi-fitness-mcp](https://github.com/kubulashvili/mi-fitness-mcp)。本仓库不向原始上游回推改动，也不与任何上游仓库做 fork 联动或自动同步。
 
 - 维护与发版（Issue / PR / tag / GitHub Release）均在本仓库进行：https://github.com/ai-dachui/mi-fitness-mcp-enhance
-- 保留 MIT 许可与原项目署名；不承诺与上游同步，上游变更不会自动合并进来。
+- 保留 MIT 许可与全部原作者署名，完整血缘见文末[来源与署名](#来源与署名)。
+- 不承诺与上游同步，上游变更不会自动合并进来。
 - 升级、问题反馈与功能请求请在本仓库提交 Issue。
 
 ## 界面预览
@@ -264,6 +265,16 @@ python -m build         # 构建发行包
 
 本项目与小米公司无关。接口为社区逆向成果，不保证持续可用。请仅用于读取和分析您自己的个人健康数据。
 
+## 来源与署名
+
+本项目的代码、文档与功能是三层持续积累的结果，署名按真实提交历史保留：
+
+1. **原始项目**：[kubulashvili/mi-fitness-mcp](https://github.com/kubulashvili/mi-fitness-mcp)（Aleksej Kubulashvili，MIT）——最初的独立 Mi Fitness MCP 实现，本项目的起点。
+2. **中文增强分支**：[HUAYUE1024/mi-fitness-mcp-cn](https://github.com/HUAYUE1024/mi-fitness-mcp-cn)（贡献者 binglua、HUAYUE1024）——中文本地化、睡眠与运动同步、血氧/压力/异常心跳；v0.2.0 的 REST API、API Key、扫码登录与 Web 仪表盘，v0.2.1/v0.2.2 的隐私加固与数据导出，以及 0.3.0 的睡眠分段修复与小时窗口同步，均来自这一层。
+3. **本自维护分支**：[ai-dachui/mi-fitness-mcp-enhance](https://github.com/ai-dachui/mi-fitness-mcp-enhance)——直接延续第 2 层的提交历史；相对 0.3.0 的增量仅为发版工程与文档（sdist 排除 release-notes、写入校验值、更新仓库链接），功能代码未重写。
+
+历史提交保留原作者信息，未做改写。特别感谢 binglua 与 HUAYUE1024 在 v0.2.x 与 0.3.0 中的主要工作。
+
 ## License
 
-[MIT](LICENSE) · 源自上游项目 [kubulashvili/mi-fitness-mcp](https://github.com/kubulashvili/mi-fitness-mcp)
+[MIT](LICENSE) · 原始版权归 Aleksej Kubulashvili（[kubulashvili/mi-fitness-mcp](https://github.com/kubulashvili/mi-fitness-mcp)）；后续增强见 [HUAYUE1024/mi-fitness-mcp-cn](https://github.com/HUAYUE1024/mi-fitness-mcp-cn)
