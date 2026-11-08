@@ -11,6 +11,14 @@
 
 基于 [kubulashvili/mi-fitness-mcp](https://github.com/kubulashvili/mi-fitness-mcp) 修改并深度重构。
 
+## 界面预览
+
+![仪表盘总览](docs/images/dashboard-overview.png)
+
+![指标走势与 API 响应检视](docs/images/dashboard-series.png)
+
+> 截图使用合成演示数据，不含任何真实账号或健康记录。
+
 ## 功能特性
 
 - 🇨🇳 **中国区云端适配**（`--region cn`），同时支持 ru/de/sg/us 等国际区!
@@ -51,11 +59,19 @@ flowchart LR
 | 压力 | 压力分数 + 等级 | `stress` | `/api/stress` |
 | 异常心跳 | 事件起止与时长 | `abnormal_heart_beat` | `/api/abnormal-heart-beat` |
 
+> 睡眠分段状态码 `6`（未分期 / 手机单段跟踪）按浅睡计入。
+
 ## 快速开始
 
 ### 安装
 
+**本项目未发布到 PyPI**，从 GitHub 安装。稳定版本用 tag，开发版用 `main`：
+
 ```bash
+# 稳定版（推荐）：安装到当前 Python 环境
+pip install "mi-fitness-mcp[all] @ git+https://github.com/HUAYUE1024/mi-fitness-mcp-cn@v0.3.0"
+
+# 开发版：克隆源码后可编辑安装
 git clone https://github.com/HUAYUE1024/mi-fitness-mcp-cn.git
 cd mi-fitness-mcp-cn
 python -m venv .venv
@@ -64,6 +80,20 @@ pip install -e '.[all,dev]'    # 含 FastAPI 与 Flask Web UI；仅核心功能:
 ```
 
 要求 Python ≥ 3.11。Linux 无系统 keyring 时可 `pip install keyrings.alt`（可能明文存储凭据）。
+
+### 升级与回滚
+
+版本升级与回滚都通过 tag 安装，不改本地数据库结构：
+
+```bash
+# 升级到 0.3.0
+pip install --force-reinstall "mi-fitness-mcp[all] @ git+https://github.com/HUAYUE1024/mi-fitness-mcp-cn@v0.3.0"
+
+# 回滚到 0.2.2
+pip install --force-reinstall "mi-fitness-mcp[all] @ git+https://github.com/HUAYUE1024/mi-fitness-mcp-cn@v0.2.2"
+```
+
+> 升级到 0.3.0 后建议先对最近 7 天做一次睡眠同步：睡眠分段状态码已按实测重映射，历史 REM/清醒时长会随同步更新。
 
 ### 获取凭据（二选一）
 
@@ -110,6 +140,12 @@ mi-fitness-mcp sync --type heart_rate --start-time 1743467400 --end-time 1743474
 ```
 
 MCP 工具（14 个）：`get_connection_status` · `sync_data` · `get_sync_status` · `get_profile` · `get_daily_summary` · `query_metric_series` · `query_heart_rate` · `query_body_measurements` · `query_sleep` · `query_workouts` · `query_spo2` · `query_stress` · `query_abnormal_heart_beat` · `get_data_coverage`
+
+`sync_data` 与 CLI/REST 使用同一组窗口参数：`hours_back`（最近 N 小时）、`start_time` / `end_time`（epoch 秒），仅对心率、压力、血氧、异常心跳、运动生效。例如在 MCP 客户端里调用：
+
+```json
+{"data_types": ["heart_rate"], "hours_back": 2}
+```
 
 ## REST API 与鉴权
 
@@ -196,6 +232,7 @@ tests/                    # 单元测试与端到端测试套件
 ## 文档
 
 - [隐私与数据安全审计](docs/PRIVACY.md) —— 数据流向、全部对外请求清单、威胁模型与自验方法
+- [v0.3.0 Release Note](docs/release-notes/v0.3.0.md)
 - [贡献指南](CONTRIBUTING.md) · [安全政策](SECURITY.md) · [更新日志](CHANGELOG.md)
 
 ## 本地开发
@@ -203,7 +240,7 @@ tests/                    # 单元测试与端到端测试套件
 ```bash
 pip install -e '.[all,dev]'
 ruff check src tests    # 代码规范检查（CI 同款）
-pytest -v               # 完整测试套件（22 个）
+pytest -v               # 完整测试套件
 python -m build         # 构建发行包
 ```
 
