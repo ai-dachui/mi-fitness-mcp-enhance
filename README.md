@@ -1,6 +1,6 @@
 # Mi Fitness MCP CN
 
-[![CI](https://github.com/HUAYUE1024/mi-fitness-mcp-cn/actions/workflows/ci.yml/badge.svg)](https://github.com/HUAYUE1024/mi-fitness-mcp-cn/actions/workflows/ci.yml)
+[![CI](https://github.com/ai-dachui/mi-fitness-mcp-enhance/actions/workflows/ci.yml/badge.svg)](https://github.com/ai-dachui/mi-fitness-mcp-enhance/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-0.3.0-orange.svg)](CHANGELOG.md)
@@ -13,7 +13,7 @@
 
 本仓库是**自维护分支**：基于 [kubulashvili/mi-fitness-mcp](https://github.com/kubulashvili/mi-fitness-mcp) 修改并深度重构，不是上游的镜像，也不与上游做 fork 联动。
 
-- 维护与发版（Issue / PR / tag / GitHub Release）均在本仓库进行：https://github.com/HUAYUE1024/mi-fitness-mcp-cn
+- 维护与发版（Issue / PR / tag / GitHub Release）均在本仓库进行：https://github.com/ai-dachui/mi-fitness-mcp-enhance
 - 保留 MIT 许可与原项目署名；不承诺与上游同步，上游变更不会自动合并进来。
 - 升级、问题反馈与功能请求请在本仓库提交 Issue。
 
@@ -75,11 +75,11 @@ flowchart LR
 
 ```bash
 # 稳定版（推荐）：安装到当前 Python 环境
-pip install "mi-fitness-mcp[all] @ git+https://github.com/HUAYUE1024/mi-fitness-mcp-cn@v0.3.0"
+pip install "mi-fitness-mcp[all] @ git+https://github.com/ai-dachui/mi-fitness-mcp-enhance@v0.3.0"
 
 # 开发版：克隆源码后可编辑安装
-git clone https://github.com/HUAYUE1024/mi-fitness-mcp-cn.git
-cd mi-fitness-mcp-cn
+git clone https://github.com/ai-dachui/mi-fitness-mcp-enhance.git
+cd mi-fitness-mcp-enhance
 python -m venv .venv
 source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -e '.[all,dev]'    # 含 FastAPI 与 Flask Web UI；仅核心功能: pip install -e .
@@ -93,10 +93,10 @@ pip install -e '.[all,dev]'    # 含 FastAPI 与 Flask Web UI；仅核心功能:
 
 ```bash
 # 升级到 0.3.0
-pip install --force-reinstall "mi-fitness-mcp[all] @ git+https://github.com/HUAYUE1024/mi-fitness-mcp-cn@v0.3.0"
+pip install --force-reinstall "mi-fitness-mcp[all] @ git+https://github.com/ai-dachui/mi-fitness-mcp-enhance@v0.3.0"
 
 # 回滚到 0.2.2
-pip install --force-reinstall "mi-fitness-mcp[all] @ git+https://github.com/HUAYUE1024/mi-fitness-mcp-cn@v0.2.2"
+pip install --force-reinstall "mi-fitness-mcp[all] @ git+https://github.com/ai-dachui/mi-fitness-mcp-enhance@v0.2.2"
 ```
 
 > 升级到 0.3.0 后建议先对最近 7 天做一次睡眠同步：睡眠分段状态码已按实测重映射，历史 REM/清醒时长会随同步更新。
