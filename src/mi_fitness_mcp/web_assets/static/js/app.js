@@ -195,7 +195,8 @@ async function api(method, path, body = null) {
       showToast(`请求失败: HTTP ${resp.status}`, jsonObj?.error || jsonObj?.detail || '请查看控制台输出', 'error');
     }
 
-    return jsonObj;
+    // Query endpoints wrap rows in {status, count, data}; UI renderers expect the array.
+    return jsonObj && Array.isArray(jsonObj.data) ? jsonObj.data : jsonObj;
   } catch (err) {
     const latency = Math.round(performance.now() - startTime);
     updateInspectorHeader(method, path, 'err', '网络错误', latency);
@@ -325,27 +326,30 @@ async function loadOverview() {
   if (summary && Array.isArray(summary) && summary.length > 0) {
     const latest = summary[summary.length - 1];
     $('statSteps').textContent = latest.steps ? latest.steps.toLocaleString() : '0';
-    $('statCalories').textContent = latest.active_calories ? Math.round(latest.active_calories) : '0';
-    $('statDistance').textContent = latest.distance ? (latest.distance / 1000).toFixed(2) : '0';
+    $('statCalories').textContent = latest.active_kcal != null ? Math.round(latest.active_kcal) : '0';
+    $('statDistance').textContent = latest.distance_m ? (latest.distance_m / 1000).toFixed(2) : '0';
   }
 
   if (hr && Array.isArray(hr) && hr.length > 0) {
-    $('statHr').textContent = hr[0].bpm || '--';
+    $('statHr').textContent = hr[hr.length - 1].bpm || '--';
   }
 
   if (sleep && Array.isArray(sleep) && sleep.length > 0) {
-    const lastSleep = sleep[sleep.length - 1];
-    const totalMinutes = lastSleep.duration_minutes || (lastSleep.end_time - lastSleep.start_time) / 60;
+    const mains = sleep.filter((item) => !item.is_nap);
+    const lastSleep = (mains.length ? mains : sleep)[(mains.length ? mains : sleep).length - 1];
+    const totalMinutes = lastSleep.duration_minutes;
     const hours = (totalMinutes / 60).toFixed(1);
     $('statSleep').textContent = isNaN(hours) ? '--' : hours;
   }
 
   if (spo2 && Array.isArray(spo2) && spo2.length > 0) {
-    $('statSpo2').textContent = spo2[0].spo2_value ? `${spo2[0].spo2_value}%` : '--';
+    const latest = spo2[spo2.length - 1];
+    $('statSpo2').textContent = latest.spo2_pct != null ? `${latest.spo2_pct}%` : '--';
   }
 
   if (stress && Array.isArray(stress) && stress.length > 0) {
-    $('statStress').textContent = stress[0].stress_value || '--';
+    const latest = stress[stress.length - 1];
+    $('statStress').textContent = latest.stress_score != null ? latest.stress_score : '--';
   }
 
   showToast('仪表盘已刷新', '最新数据已加载', 'success');
@@ -414,11 +418,16 @@ function renderSleepTimeline(data) {
     return;
   }
 
-  const latest = data[data.length - 1];
-  const deep = latest.deep_sleep_minutes || 0;
-  const light = latest.light_sleep_minutes || 0;
-  const rem = latest.rem_sleep_minutes || 0;
-  const awake = latest.awake_minutes || 0;
+  const mains = data.filter((item) => !item.is_nap);
+  const latest = (mains.length ? mains : data)[(mains.length ? mains : data).length - 1];
+  const stages = Array.isArray(latest.stages) ? latest.stages : [];
+  const stageMinutes = (name) => stages
+    .filter((item) => item.stage === name)
+    .reduce((sum, item) => sum + (item.minutes || 0), 0);
+  const deep = stageMinutes('deep') || latest.deep_sleep_minutes || 0;
+  const light = stageMinutes('light') || latest.light_sleep_minutes || 0;
+  const rem = stageMinutes('rem') || latest.rem_sleep_minutes || 0;
+  const awake = stageMinutes('awake') || latest.awake_minutes || 0;
   const total = deep + light + rem + awake || 1;
 
   container.innerHTML = `
