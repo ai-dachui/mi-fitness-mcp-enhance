@@ -11,12 +11,20 @@
 
 ## 关于本仓库
 
-本仓库是**自维护分支**，代码与提交历史延续自中文增强分支 [HUAYUE1024/mi-fitness-mcp-cn](https://github.com/HUAYUE1024/mi-fitness-mcp-cn)，而该分支派生自原始项目 [kubulashvili/mi-fitness-mcp](https://github.com/kubulashvili/mi-fitness-mcp)。本仓库不向原始上游回推改动，也不与任何上游仓库做 fork 联动或自动同步。
+本仓库基于中文增强分支 [HUAYUE1024/mi-fitness-mcp-cn](https://github.com/HUAYUE1024/mi-fitness-mcp-cn)（其源自 [kubulashvili/mi-fitness-mcp](https://github.com/kubulashvili/mi-fitness-mcp)）的 v0.2.2 继续开发，当前版本 **v0.3.0**。维护与发版（Issue / PR / tag / GitHub Release）都在本仓库进行，保留 MIT 许可与全部原作者署名。
 
-- 维护与发版（Issue / PR / tag / GitHub Release）均在本仓库进行：https://github.com/ai-dachui/mi-fitness-mcp-enhance
-- 保留 MIT 许可与全部原作者署名，完整血缘见文末[来源与署名](#来源与署名)。
-- 不承诺与上游同步，上游变更不会自动合并进来。
-- 升级、问题反馈与功能请求请在本仓库提交 Issue。
+## 相比上游多了什么
+
+上游最新是 v0.2.2，本仓库到 v0.3.0 多了下面这些，每条都有对应提交和测试：
+
+- **睡眠数据修好了**：旧版睡眠分段状态码映射反了，深睡基本取不到。本版按实测重映射（4=REM、5=清醒、6=未分期按浅睡计），历史数据重新同步一次深睡就回来了；主睡眠评分也能从日汇总补齐（0–100）。
+- **小时窗口增量同步**：`sync_data`、`POST /api/sync`、CLI 新增 `hours_back` / `start_time` / `end_time`，只拉最近 N 小时。2 小时心率一次约 60–120 条，不再全天约 1440 条，单趟请求量约降到 1/12。
+- **时间参数更宽容**：同步口直接吃 ISO 8601（如 `2026-11-06T09:00:00`），窗口起止一端日期一端时间也能跑；查询端点统一按日期处理，修掉 ISO 串比较会漏掉开始日的问题。
+- **API 返回包版本号**，外部程序能直接确认后端版本。
+- **仪表盘显示修准**：总览与查询页按 API 实际字段渲染，活动消耗、距离、静息心率、睡眠、血氧、压力与睡眠分段不再错位或空白。
+- **CI 更严**：新增 `twine check`、实装 wheel 冒烟和 CLI 冒烟，发版包坏没坏在 CI 就拦下。
+
+日聚合数据（步数、睡眠、体重）在窗口模式下仍按整天抓取，汇总完整；无破坏性 API 变更，旧版本可继续读同一个 SQLite 库。
 
 ## 界面预览
 
@@ -270,8 +278,8 @@ python -m build         # 构建发行包
 本项目的代码、文档与功能是三层持续积累的结果，署名按真实提交历史保留：
 
 1. **原始项目**：[kubulashvili/mi-fitness-mcp](https://github.com/kubulashvili/mi-fitness-mcp)（Aleksej Kubulashvili，MIT）——最初的独立 Mi Fitness MCP 实现，本项目的起点。
-2. **中文增强分支**：[HUAYUE1024/mi-fitness-mcp-cn](https://github.com/HUAYUE1024/mi-fitness-mcp-cn)（贡献者 binglua、HUAYUE1024）——中文本地化、睡眠与运动同步、血氧/压力/异常心跳；v0.2.0 的 REST API、API Key、扫码登录与 Web 仪表盘，v0.2.1/v0.2.2 的隐私加固与数据导出，以及 0.3.0 的睡眠分段修复与小时窗口同步，均来自这一层。
-3. **本自维护分支**：[ai-dachui/mi-fitness-mcp-enhance](https://github.com/ai-dachui/mi-fitness-mcp-enhance)——直接延续第 2 层的提交历史；相对 0.3.0 的增量仅为发版工程与文档（sdist 排除 release-notes、写入校验值、更新仓库链接），功能代码未重写。
+2. **中文增强分支**：[HUAYUE1024/mi-fitness-mcp-cn](https://github.com/HUAYUE1024/mi-fitness-mcp-cn)（贡献者 binglua、HUAYUE1024）——中文本地化、睡眠与运动同步、血氧/压力/异常心跳；v0.2.0 的 REST API、API Key、扫码登录与 Web 仪表盘，v0.2.1/v0.2.2 的隐私加固与数据导出。
+3. **本自维护分支**：[ai-dachui/mi-fitness-mcp-enhance](https://github.com/ai-dachui/mi-fitness-mcp-enhance)——直接延续第 2 层的提交历史，负责 v0.3.0 的睡眠分段修复、小时窗口同步、时间参数兼容、仪表盘字段修复、CI 产物校验与发版工程（详见上文[相比上游多了什么](#相比上游多了什么)）。
 
 历史提交保留原作者信息，未做改写。特别感谢 binglua 与 HUAYUE1024 在 v0.2.x 与 0.3.0 中的主要工作。
 
