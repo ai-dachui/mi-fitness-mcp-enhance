@@ -34,6 +34,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from pydantic import BaseModel
 
+from mi_fitness_mcp import __version__
 from mi_fitness_mcp.adapters.mi_fitness_cloud import MiFitnessCloudAdapter
 from mi_fitness_mcp.auth import load_mi_fitness_token
 from mi_fitness_mcp.config import load_config
@@ -184,7 +185,7 @@ async def _gate(x_api_key: str | None = Header(default=None)) -> None:
 
 app = FastAPI(
     title="Mi Fitness API",
-    version="0.2.2",
+    version=__version__,
     description="小米运动健康数据 REST API（多 Key 鉴权 + 扫码登录 + 本地 SQLite 缓存）",
     lifespan=lifespan,
     dependencies=[Depends(_gate)],
@@ -292,6 +293,17 @@ def _validate_date(value: str | None, name: str) -> str | None:
         return value
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=f"{name} 必须为 YYYY-MM-DD 或 ISO 8601 格式") from exc
+
+
+def _validate_query_date(value: str, name: str) -> str:
+    """Validate a query range boundary and normalize it to YYYY-MM-DD.
+
+    查询端点按 ``substr(timestamp, 1, 10)`` 比较日期，直接传入 ISO 8601
+    时间会按字符串比较并漏掉开始日，因此这里统一截断为日期部分。
+    """
+    validated = _validate_date(value, name)
+    assert validated is not None
+    return validated[:10]
 
 
 def _validate_limit(limit: int | None) -> int | None:
@@ -701,7 +713,7 @@ async def get_sync_status(sync_id: str, request: Request) -> dict:
 @app.get("/api/summary")
 def get_summary(request: Request, start_date: str, end_date: str) -> dict:
     data = _query_service(request).get_daily_summaries(
-        _validate_date(start_date, "start_date"), _validate_date(end_date, "end_date")
+        _validate_query_date(start_date, "start_date"), _validate_query_date(end_date, "end_date")
     )
     return {"status": "ok", "count": len(data), "data": data}
 
@@ -723,8 +735,8 @@ def get_metric_series(
         raise HTTPException(status_code=400, detail=f"aggregation 必须是 {AGGREGATIONS} 之一")
     data = _query_service(request).get_metric_series(
         metric=metric,
-        start_date=_validate_date(start_date, "start_date"),
-        end_date=_validate_date(end_date, "end_date"),
+        start_date=_validate_query_date(start_date, "start_date"),
+        end_date=_validate_query_date(end_date, "end_date"),
         granularity=granularity,
         aggregation=aggregation,
     )
@@ -740,8 +752,8 @@ def get_heart_rate(
     limit: int | None = None,
 ) -> dict:
     data = _query_service(request).get_heart_rate_samples(
-        start_date=_validate_date(start_date, "start_date"),
-        end_date=_validate_date(end_date, "end_date"),
+        start_date=_validate_query_date(start_date, "start_date"),
+        end_date=_validate_query_date(end_date, "end_date"),
         sample_type=sample_type,
         limit=_validate_limit(limit),
     )
@@ -753,8 +765,8 @@ def get_sleep(
     request: Request, start_date: str, end_date: str, include_naps: bool = True
 ) -> dict:
     data = _query_service(request).get_sleep_sessions(
-        start_date=_validate_date(start_date, "start_date"),
-        end_date=_validate_date(end_date, "end_date"),
+        start_date=_validate_query_date(start_date, "start_date"),
+        end_date=_validate_query_date(end_date, "end_date"),
         include_naps=include_naps,
     )
     return {"status": "ok", "count": len(data), "data": data}
@@ -770,8 +782,8 @@ def get_workouts(
     min_distance_km: float | None = None,
 ) -> dict:
     data = _query_service(request).get_workouts(
-        start_date=_validate_date(start_date, "start_date"),
-        end_date=_validate_date(end_date, "end_date"),
+        start_date=_validate_query_date(start_date, "start_date"),
+        end_date=_validate_query_date(end_date, "end_date"),
         activity_types=activity_types,
         min_duration=min_duration,
         min_distance_km=min_distance_km,
@@ -788,8 +800,8 @@ def get_body_measurements(
     latest_only: bool = False,
 ) -> dict:
     data = _query_service(request).get_body_measurements(
-        start_date=_validate_date(start_date, "start_date"),
-        end_date=_validate_date(end_date, "end_date"),
+        start_date=_validate_query_date(start_date, "start_date"),
+        end_date=_validate_query_date(end_date, "end_date"),
         metrics=metrics,
     )
     if latest_only and data:
@@ -800,8 +812,8 @@ def get_body_measurements(
 @app.get("/api/spo2")
 def get_spo2(request: Request, start_date: str, end_date: str, limit: int | None = None) -> dict:
     data = _query_service(request).get_spo2_samples(
-        start_date=_validate_date(start_date, "start_date"),
-        end_date=_validate_date(end_date, "end_date"),
+        start_date=_validate_query_date(start_date, "start_date"),
+        end_date=_validate_query_date(end_date, "end_date"),
         limit=_validate_limit(limit),
     )
     return {"status": "ok", "count": len(data), "data": data}
@@ -814,8 +826,8 @@ def get_stress(
     if level and level not in STRESS_LEVELS:
         raise HTTPException(status_code=400, detail=f"level 必须是 {STRESS_LEVELS} 之一")
     data = _query_service(request).get_stress_samples(
-        start_date=_validate_date(start_date, "start_date"),
-        end_date=_validate_date(end_date, "end_date"),
+        start_date=_validate_query_date(start_date, "start_date"),
+        end_date=_validate_query_date(end_date, "end_date"),
         level=level,
         limit=_validate_limit(limit),
     )
@@ -827,8 +839,8 @@ def get_abnormal_heart_beat(
     request: Request, start_date: str, end_date: str, limit: int | None = None
 ) -> dict:
     data = _query_service(request).get_abnormal_heart_beat_events(
-        start_date=_validate_date(start_date, "start_date"),
-        end_date=_validate_date(end_date, "end_date"),
+        start_date=_validate_query_date(start_date, "start_date"),
+        end_date=_validate_query_date(end_date, "end_date"),
         limit=_validate_limit(limit),
     )
     return {"status": "ok", "count": len(data), "data": data}
@@ -892,8 +904,8 @@ def export_data(
         raise HTTPException(status_code=400, detail="format 必须是 json 或 csv")
     data = EXPORT_SOURCES[data_type](
         _query_service(request),
-        _validate_date(start_date, "start_date"),
-        _validate_date(end_date, "end_date"),
+        _validate_query_date(start_date, "start_date"),
+        _validate_query_date(end_date, "end_date"),
     )
     if format == "csv":
         return Response(

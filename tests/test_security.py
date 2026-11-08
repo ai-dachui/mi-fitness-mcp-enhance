@@ -2,7 +2,8 @@
 
 import keyring
 
-from mi_fitness_mcp.api import _to_csv
+from mi_fitness_mcp import __version__
+from mi_fitness_mcp.api import _to_csv, _validate_query_date, app
 from mi_fitness_mcp.security import (
     default_allowed_hosts,
     delete_api_key_secret,
@@ -87,3 +88,13 @@ def test_to_csv_flattens_and_adds_bom():
     # CSV 规范内层引号转义为两个引号
     assert '"[{""stage"": ""deep"", ""minutes"": 60}]"' in csv_text
     assert "2026-08-31" in csv_text
+
+
+def test_query_date_accepts_and_truncates_iso_8601():
+    assert _validate_query_date("2026-11-07", "start_date") == "2026-11-07"
+    assert _validate_query_date("2026-11-07T00:00:00", "start_date") == "2026-11-07"
+    assert _validate_query_date("2026-11-07T00:00:00+08:00", "start_date") == "2026-11-07"
+
+
+def test_openapi_version_matches_package():
+    assert app.version == __version__
